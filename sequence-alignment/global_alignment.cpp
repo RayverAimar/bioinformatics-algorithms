@@ -3,6 +3,7 @@
 #include <stack>
 #include <tuple>
 #include <iomanip>
+#include <algorithm>
 
 #include "aligner_tree.h"
 
@@ -45,6 +46,8 @@ public:
     GlobalSequenceAlignerManager();
     GlobalSequenceAlignerManager(const std::string &,
                           const std::string &,
+                          const std::string &,
+                          const std::string &,
                           const int = 1,
                           const int = -1,
                           const int = -2,
@@ -54,6 +57,8 @@ public:
     void print_scoring_matrix(const int & = 4);
     void print_trail_matrix(const int & = 4);
     void save_best_alignments(std::string, std::string, const char = '-');
+    void traceback_alignments(const int &, const int &, std::string = "", std::string = "");
+    void save_alignments();
 
 private:
     int penalty_per_gap(unsigned int, int, int);
@@ -65,8 +70,11 @@ private:
 
     int **M;
     unsigned int **M_trail;
-    std::string A, B;
+    std::string A, B, alignment_name, logs_path;
+    std::ofstream file;
     int gap_penalty, match_reward, mismatch_penalty, first_gap_penalty;
+    int total_gaps = 0, total_matchs = 0, total_mismatchs = 0;
+    int total_alignments = 0;
     unsigned int columns, rows;
     fsec alignment_duration, reconstruction_duration;
 };
@@ -78,16 +86,20 @@ GlobalSequenceAlignerManager::GlobalSequenceAlignerManager()
 
 GlobalSequenceAlignerManager::GlobalSequenceAlignerManager(const std::string &_A,
                                              const std::string &_B,
+                                             const std::string &_alignment_name,
+                                             const std::string &_logs_path,
                                              const int _match_reward,
                                              const int _mismatch_penalty,
                                              const int _gap_penalty,
                                              const int _f_gap_penalty) : 
     A(_A),
     B(_B),
+    alignment_name(_alignment_name),
     gap_penalty(_gap_penalty),
     match_reward(_match_reward),
     mismatch_penalty(_mismatch_penalty),
     first_gap_penalty(_f_gap_penalty),
+    logs_path(_logs_path),
     columns(A.size() + 1),
     rows(B.size() + 1)
 {
@@ -214,11 +226,65 @@ void GlobalSequenceAlignerManager::align()
     }
     auto end = Time::now();
     alignment_duration = end - start;
-    /*
-    std::cout << "Elapsed time for alignment: " <<
-        std::fixed << std::setprecision(10) <<
-        duration.count() << " seconds" << std::endl;
-    */
+}
+
+void GlobalSequenceAlignerManager::traceback_alignments(const int &i, const int &j, std::string a, std::string b)
+{
+    if(M_trail[i][j] == DONE)
+    {
+        total_alignments++;
+        std::reverse(a.begin(), a.end());
+        std::reverse(b.begin(), b.end());
+        /*
+        for(int idx = a.size()-1; idx >= 0; idx--)
+            file << a[idx];
+        file << "\n";
+        for(int idx = b.size()-1; idx >= 0; idx--)
+            file << b[idx];
+        file << "\n";
+        */
+        file << a << "\n";
+        file << b << "\n";
+        return;
+    }
+    if(M_trail[i][j] & DIAG)
+    {
+        if(A[i-1] == B[j-1]) total_matchs++;
+        else total_mismatchs++;
+        traceback_alignments(i-1,j-1, a+A[i-1], b+B[j-1]);
+    }
+    if (M_trail[i][j] & TOP)
+    {
+        total_gaps++;
+        traceback_alignments(i-1,j, a+A[i-1], b+GAP);
+    }
+    if(M_trail[i][j] & LEFT)
+    {
+        total_gaps++;
+        traceback_alignments(i,j-1, a+GAP, b+B[j-1]);
+    }
+}
+
+void GlobalSequenceAlignerManager::save_alignments()
+{
+    file.open(alignment_name, std::ios::app);
+    auto start = Time::now();
+    traceback_alignments(A.size(), B.size());
+    auto end = Time::now();
+    file.close();
+    std::cout << "Data saved succesfully at  " << alignment_name << "!" << std::endl;
+    reconstruction_duration = end - start;
+    
+    file.open(logs_path, std::ios::app);
+    file << M[A.size()][B.size()] << "," 
+         << total_alignments << ","
+         << std::fixed << std::setprecision(10)
+         << alignment_duration.count() << ","
+         << reconstruction_duration.count() << ","
+         << total_gaps/total_alignments<< ","
+         << total_matchs/total_alignments << ","
+         << total_mismatchs/total_alignments <<"\n";
+    file.close();
 }
 
 void GlobalSequenceAlignerManager::save_best_alignments(std::string file_path,
@@ -304,11 +370,6 @@ void GlobalSequenceAlignerManager::save_best_alignments(std::string file_path,
     }
     auto end = Time::now();
     reconstruction_duration = end - start;
-    /*
-    std::cout << "Elapsed time for searching best alignments: "
-                << std::setprecision(10) << duration.count()
-                << " seconds." << std::endl;
-    */
     tree->dfs(tree->root);
     tree->save(file_path);
 
@@ -391,7 +452,7 @@ void GlobalSequenceAligner::fit(int chunk_size)
     int chunks = A.size() / chunk_size;
     std::string logs_path = directory + "/logs.csv";
     std::ofstream logs(logs_path);
-    logs << "chunk,file_name,score,total_alignments,alignment_time,reconstruction_time\n";
+    logs << "chunk,file_name,score,total_alignments,alignment_time,reconstruction_time,mean_gaps,mean_match,mean_mismatch\n";
     logs.close();
     for(int i = 0; i < chunks; i++)
     {
@@ -403,24 +464,25 @@ void GlobalSequenceAligner::fit(int chunk_size)
                                       to_string((i * chunk_size) + chunk_size) +
                                       ".txt";
         std::ofstream log_file(logs_path, std::ios::app);
-
         log_file << i * chunk_size << "-" << (i * chunk_size) + chunk_size << ",";
         log_file << chunk_file_name << ",";
         log_file.close();
 
-        GlobalSequenceAlignerManager temporalAligner(
-                A.substr(i * chunk_size, chunk_size),
-                B.substr(i * chunk_size, chunk_size)
-        );
-        temporalAligner.align();
-        temporalAligner.save_best_alignments(directory + 
+        std::string temporal_aligner_name = directory + 
                                             "/" +
                                             to_string(i * chunk_size) +
                                             "_" +
                                             to_string((i * chunk_size) + chunk_size) +
-                                            ".txt",
-                                            logs_path
+                                            ".txt";
+
+        GlobalSequenceAlignerManager temporalAligner(
+                A.substr(i * chunk_size, chunk_size),
+                B.substr(i * chunk_size, chunk_size),
+                temporal_aligner_name,
+                logs_path
         );
+        temporalAligner.align();
+        temporalAligner.save_alignments();
         //temporalAligner.print_scoring_matrix();
         //temporalAligner.print_trail_matrix();
     }
@@ -441,9 +503,13 @@ void GlobalSequenceAligner::fit(int chunk_size)
     logs << chunks * chunk_size << "," << A.size() << ",";
     logs << last_chunk_file_name << ",";
     logs.close();
-    GlobalSequenceAlignerManager ResidualAligner(A_remainder, B_remainder);
+    GlobalSequenceAlignerManager ResidualAligner(A_remainder,
+                                                B_remainder,
+                                                last_chunk_file_name,
+                                                logs_path
+    );
     ResidualAligner.align();
-    ResidualAligner.save_best_alignments(last_chunk_file_name, logs_path);
+    ResidualAligner.save_alignments();
 }
 
 
@@ -453,7 +519,7 @@ void basic_test()
     std::string A = "TAGCATGTCTAGC";
     std::string B = "TAGCAGC";
 
-    GlobalSequenceAlignerManager Aligner(A, B);
+    GlobalSequenceAlignerManager Aligner(A, B, "Random_alignment", "logs.csv");
     Aligner.align();
     Aligner.save_best_alignments("./data/output.txt", "data/log.txt");
     Aligner.print_scoring_matrix();
@@ -506,7 +572,7 @@ void test()
     std::string B_name = "Bacteria"; 
     //Aligning Sars-Cov with Bacteria sequences of nucleotids
     GlobalSequenceAligner Aligner(adn_strings[1], adn_strings[2], A_name, B_name);
-    Aligner.fit();
+    Aligner.fit(1080);
 }
 
 int main()
