@@ -553,7 +553,7 @@ void align_sequences(const std::vector<SequenceType> &sequences)
                                           sequences[j].second,
                                           sequences[i].first,
                                           sequences[j].first,
-                                          1, -1,-2, -5);
+                                          1, -1,-2, -5); // Current Alignment Configuration
             Aligner.fit(1080);
         }
     }
