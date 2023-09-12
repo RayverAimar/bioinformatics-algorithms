@@ -20,8 +20,12 @@ public:
     void print_scores_matrix();
     void align();
 
+    std::vector<std::string> get_aligments();
+
     std::vector<SequenceType> Sequences;
+    std::vector<std::string> Alignments;
     std::vector<std::vector<int>> scores_matrix;
+    size_t max_size;
 };
 
 StarAligner::StarAligner()
@@ -31,6 +35,7 @@ StarAligner::StarAligner()
 StarAligner::StarAligner(const std::vector<SequenceType> &_Sequences) : Sequences(_Sequences)
 {
     scores_matrix = std::vector<std::vector<int>>(Sequences.size() + 1, std::vector<int>(Sequences.size() + 1, 0));
+    Alignments = std::vector<std::string>(Sequences.size(), "");
 }
 
 int StarAligner::get_center_of_sequences()
@@ -103,6 +108,7 @@ void StarAligner::fill_scores_matrix()
 void StarAligner::align()
 {
     int idx_center = get_center_of_sequences();
+    max_size = (size_t)-1e9;
     for (int i = 0; i < Sequences.size(); i++)
     {
         if (i == idx_center)
@@ -110,8 +116,29 @@ void StarAligner::align()
         GlobalSequenceAlignerManager Aligner(Sequences[idx_center].second, Sequences[i].second, 1, -1, -2, -2);
         Aligner.align();
         SequenceType alignment = Aligner.get_alignment();
-        std::cout << alignment.first << "\n" << alignment.second << "\n\n";
+        max_size = std::max(max_size, std::max(alignment.first.size(), alignment.second.size()));
+        if(Alignments[idx_center].empty())
+            Alignments[idx_center] = alignment.first;
+        Alignments[i] = alignment.second;
     }
+}
+
+std::vector<std::string> StarAligner::get_aligments()
+{
+    // Principio de consistencia
+
+    for(int i = 0; i < Alignments.size(); i++)
+    {   
+        size_t current_size = Alignments[i].size();
+        if(current_size < max_size)
+        {
+            for(int j = 0; j < max_size - current_size; j++)
+            {
+                Alignments[i].push_back(GAP);
+            }
+        }
+    }
+    return Alignments;
 }
 
 int main()
@@ -120,5 +147,9 @@ int main()
     StarAligner MultipleAligner(sequences);
     MultipleAligner.align();
     MultipleAligner.print_scores_matrix();
-
+    std::vector<std::string> alignments = MultipleAligner.get_aligments();
+    for(std::string alignment : alignments)
+    {
+        std::cout << alignment << std::endl;
+    }
 }

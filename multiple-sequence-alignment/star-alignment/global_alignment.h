@@ -231,24 +231,9 @@ SequenceType GlobalSequenceAlignerManager::get_alignment(const int &i,
         return std::make_pair(a, b);
     }
     if (M_trail[i][j] & DIAG)
-    {
-        if (A[i - 1] == B[j - 1])
-        {
-            return get_alignment(i - 1, j - 1, a + A[i - 1], b + B[j - 1]);
-        }
-        else
-        {
-            return get_alignment(i - 1, j - 1, a + A[i - 1], b + B[j - 1]);
-        }
-    }
+        return get_alignment(i - 1, j - 1, a + A[i - 1], b + B[j - 1]);
     if (M_trail[i][j] & TOP)
-    {
         return get_alignment(i - 1, j, a + A[i - 1], b + GAP);
-    }
-    //if (M_trail[i][j] & LEFT)
-    //{
-    //    return get_alignment(i, j - 1, a + GAP, b + B[j - 1]);
-    //}
     return get_alignment(i, j - 1, a + GAP, b + B[j - 1]);
 }
 
