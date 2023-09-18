@@ -38,44 +38,48 @@ enum Direction
     DONE = 99,
 };
 
-class GlobalSequenceAlignerManager
+class LocalSequenceAlignerManager
 {
 public:
-    GlobalSequenceAlignerManager();
-    GlobalSequenceAlignerManager(const std::string &,
-                                 const std::string &,
-                                 const std::string &,
-                                 const std::string &,
-                                 const int = 1,
-                                 const int = -1,
-                                 const int = -2,
-                                 const int = -5);
+    LocalSequenceAlignerManager();
+    LocalSequenceAlignerManager(const std::string&,
+        const std::string&,
+        const std::string&,
+        const std::string&,
+        const int = 1,
+        const int = -1,
+        const int = -2,
+        const int = -5);
 
     void align();
-    void print_scoring_matrix(const int & = 4);
-    void print_trail_matrix(const int & = 4);
+    void print_scoring_matrix(const int& = 4);
+    void print_trail_matrix(const int& = 4);
     void save_alignments();
     void save_scoring_matrix();
     void save_trail_matrix();
 
 private:
-    void traceback_alignments(const int &,
-                              const int &,
-                              std::string = "",
-                              std::string = "",
-                              const int & = 0,
-                              const int & = 0,
-                              const int & = 0);
+    void traceback_alignments(const int&,
+        const int&,
+        const int&,
+        const int&,
+        const int&,
+        const int&,
+        std::string = "",
+        std::string = "",
+        const int& = 0,
+        const int& = 0,
+        const int& = 0);
     std::vector<int> get_maximums();
     int penalty_per_gap(unsigned int, int, int);
     void init_matrices();
-    unsigned int get_trail(const int &,
-                           const int &,
-                           const int &,
-                           const int &);
+    unsigned int get_trail(const int&,
+        const int&,
+        const int&,
+        const int&);
 
-    int **M;
-    unsigned int **M_trail;
+    int** M;
+    unsigned int** M_trail;
     unsigned int columns, rows;
     std::string A, B, project_name, folder, logs_path;
     std::string sequences_path, matrix_score_path, matrix_trail_path;
@@ -86,19 +90,19 @@ private:
     fsec alignment_duration, reconstruction_duration;
 };
 
-GlobalSequenceAlignerManager::GlobalSequenceAlignerManager()
+LocalSequenceAlignerManager::LocalSequenceAlignerManager()
 {
     M = nullptr;
 }
 
-GlobalSequenceAlignerManager::GlobalSequenceAlignerManager(const std::string &_A,
-                                                           const std::string &_B,
-                                                           const std::string &_folder,
-                                                           const std::string &_project_name,
-                                                           const int _match_reward,
-                                                           const int _mismatch_penalty,
-                                                           const int _gap_penalty,
-                                                           const int _f_gap_penalty) : 
+LocalSequenceAlignerManager::LocalSequenceAlignerManager(const std::string& _A,
+    const std::string& _B,
+    const std::string& _folder,
+    const std::string& _project_name,
+    const int _match_reward,
+    const int _mismatch_penalty,
+    const int _gap_penalty,
+    const int _f_gap_penalty) :
     A(_A),
     B(_B),
     folder(_folder),
@@ -119,12 +123,12 @@ GlobalSequenceAlignerManager::GlobalSequenceAlignerManager(const std::string &_A
     this->init_matrices();
 }
 
-void GlobalSequenceAlignerManager::init_matrices()
+void LocalSequenceAlignerManager::init_matrices()
 {
     /* Allocating memory for matrices */
 
-    M = new int *[columns];
-    M_trail = new unsigned int *[columns];
+    M = new int* [columns];
+    M_trail = new unsigned int* [columns];
     for (int i = 0; i < columns; i++)
     {
         M[i] = new int[rows];
@@ -155,14 +159,14 @@ void GlobalSequenceAlignerManager::init_matrices()
 }
 
 
-void GlobalSequenceAlignerManager::save_scoring_matrix()
+void LocalSequenceAlignerManager::save_scoring_matrix()
 {
     file.open(matrix_score_path);
     file << "\\,-,";
-    for(int i = 0; i < B.size(); i++)
+    for (int i = 0; i < B.size(); i++)
     {
         file << B[i];
-        if(i != B.size() - 1)
+        if (i != B.size() - 1)
             file << ",";
     }
     file << "\n";
@@ -183,14 +187,14 @@ void GlobalSequenceAlignerManager::save_scoring_matrix()
     file.close();
 }
 
-void GlobalSequenceAlignerManager::save_trail_matrix()
+void LocalSequenceAlignerManager::save_trail_matrix()
 {
     file.open(matrix_trail_path);
     file << "\\,-,";
-    for(int i = 0; i < B.size(); i++)
+    for (int i = 0; i < B.size(); i++)
     {
         file << B[i];
-        if(i != B.size() - 1)
+        if (i != B.size() - 1)
             file << ",";
     }
     file << "\n";
@@ -211,10 +215,10 @@ void GlobalSequenceAlignerManager::save_trail_matrix()
     file.close();
 }
 
-void GlobalSequenceAlignerManager::print_scoring_matrix(const int &padding)
+void LocalSequenceAlignerManager::print_scoring_matrix(const int& padding)
 {
     std::cout << "\n*** Displaying Scoring Matrix ***\n"
-              << std::endl;
+        << std::endl;
     std::cout << std::setw(padding << 1) << "-";
     for (int i = 0; i < B.size(); i++)
         std::cout << std::setw(padding) << B[i];
@@ -234,10 +238,10 @@ void GlobalSequenceAlignerManager::print_scoring_matrix(const int &padding)
     }
 }
 
-void GlobalSequenceAlignerManager::print_trail_matrix(const int &padding)
+void LocalSequenceAlignerManager::print_trail_matrix(const int& padding)
 {
     std::cout << "\n*** Displaying Trail Matrix ***\n"
-              << std::endl;
+        << std::endl;
 
     std::cout << std::setw(padding << 1) << "-";
     for (int i = 0; i < B.size(); i++)
@@ -258,18 +262,18 @@ void GlobalSequenceAlignerManager::print_trail_matrix(const int &padding)
     }
 }
 
-unsigned int GlobalSequenceAlignerManager::get_trail(const int &max_value,
-                                                     const int &match,
-                                                     const int &top,
-                                                     const int &left)
+unsigned int LocalSequenceAlignerManager::get_trail(const int& max_value,
+    const int& match,
+    const int& top,
+    const int& left)
 {
-    if(max_value == 0) return DONE;
+    if (max_value == 0) return DONE;
     return (match == max_value ? 1 : 0) + // << 0
-           ((top == max_value ? 1 : 0) << 1) +
-           ((left == max_value ? 1 : 0) << 2);
+        ((top == max_value ? 1 : 0) << 1) +
+        ((left == max_value ? 1 : 0) << 2);
 }
 
-int GlobalSequenceAlignerManager::penalty_per_gap(unsigned int direction, int i, int j)
+int LocalSequenceAlignerManager::penalty_per_gap(unsigned int direction, int i, int j)
 {
     if (M_trail[i][j] == direction)
         return gap_penalty;
@@ -277,7 +281,7 @@ int GlobalSequenceAlignerManager::penalty_per_gap(unsigned int direction, int i,
         return first_gap_penalty;
 }
 
-void GlobalSequenceAlignerManager::align()
+void LocalSequenceAlignerManager::align()
 {
     auto start = Time::now();
     for (int i = 1; i < columns; i++)
@@ -285,7 +289,7 @@ void GlobalSequenceAlignerManager::align()
         for (int j = 1; j < rows; j++)
         {
             int match = M[i - 1][j - 1] +
-                        ((A[i - 1] == B[j - 1]) ? match_reward : mismatch_penalty);
+                ((A[i - 1] == B[j - 1]) ? match_reward : mismatch_penalty);
             int top = M[i - 1][j] + penalty_per_gap(TOP, i - 1, j);
             int left = M[i][j - 1] + penalty_per_gap(LEFT, i, j - 1);
 
@@ -297,13 +301,17 @@ void GlobalSequenceAlignerManager::align()
     alignment_duration = (end - start);
 }
 
-void GlobalSequenceAlignerManager::traceback_alignments(const int &i,
-                                                        const int &j,
-                                                        std::string a,
-                                                        std::string b,
-                                                        const int &matches,
-                                                        const int &mismatches,
-                                                        const int &gaps)
+void LocalSequenceAlignerManager::traceback_alignments(const int& start_A,
+    const int& end_A,
+    const int& start_B,
+    const int& end_B,
+    const int& i,
+    const int& j,
+    std::string a,
+    std::string b,
+    const int& matches,
+    const int& mismatches,
+    const int& gaps)
 {
     if (M_trail[i][j] == DONE)
     {
@@ -313,44 +321,45 @@ void GlobalSequenceAlignerManager::traceback_alignments(const int &i,
         total_matchs += matches;
         std::reverse(a.begin(), a.end());
         std::reverse(b.begin(), b.end());
-        file << a << "\n";
-        file << b << "\n";
+        file << start_A << " " << a << " " << end_A << " ("<< end_A - start_A << ")\n";
+        file << start_B << " " << b << " " << end_B << " ("<< end_B - start_B << ")\n";
+        file << "\n";
         return;
     }
     if (M_trail[i][j] & DIAG)
     {
         if (A[i - 1] == B[j - 1])
         {
-            traceback_alignments(i - 1, j - 1, a + A[i - 1], b + B[j - 1],
-                                 matches + 1, mismatches, gaps);
+            traceback_alignments(start_A, end_A+1, start_B, end_B+1, i - 1, j - 1, a + A[i - 1], b + B[j - 1],
+                matches + 1, mismatches, gaps);
         }
         else
         {
-            traceback_alignments(i - 1, j - 1, a + A[i - 1], b + B[j - 1],
-                                 matches, mismatches + 1, gaps);
+            traceback_alignments(start_A, end_A+1, start_B, end_B+1, i - 1, j - 1, a + A[i - 1], b + B[j - 1],
+                matches, mismatches + 1, gaps);
         }
     }
     if (M_trail[i][j] & TOP)
     {
-        traceback_alignments(i - 1, j, a + A[i - 1], b + GAP,
-                             matches, mismatches, gaps + 1);
+        traceback_alignments(start_A, end_A+1, start_B, end_B, i - 1, j, a + A[i - 1], b + GAP,
+            matches, mismatches, gaps + 1);
     }
     if (M_trail[i][j] & LEFT)
     {
-        traceback_alignments(i, j - 1, a + GAP, b + B[j - 1],
-                             matches, mismatches, gaps + 1);
+        traceback_alignments(start_A, end_A, start_B, end_B+1, i, j - 1, a + GAP, b + B[j - 1],
+            matches, mismatches, gaps + 1);
     }
 }
 
-std::vector<int> GlobalSequenceAlignerManager::get_maximums()
+std::vector<int> LocalSequenceAlignerManager::get_maximums()
 {
     int max_value = -1e9;
 
-    for(int i = 0; i < columns; i++)
+    for (int i = 0; i < columns; i++)
     {
-        for(int j = 0; j < rows; j++)
+        for (int j = 0; j < rows; j++)
         {
-            if(M[i][j] > max_value)
+            if (M[i][j] > max_value)
             {
                 max_value = M[i][j];
             }
@@ -359,11 +368,11 @@ std::vector<int> GlobalSequenceAlignerManager::get_maximums()
 
     std::vector<int> maximums;
 
-    for(int i = 0; i < columns; i++)
+    for (int i = 0; i < columns; i++)
     {
         for (int j = 0; j < rows; j++)
         {
-            if(M[i][j] == max_value)
+            if (M[i][j] == max_value)
             {
                 maximums.push_back(i);
                 maximums.push_back(j);
@@ -373,14 +382,17 @@ std::vector<int> GlobalSequenceAlignerManager::get_maximums()
     return maximums;
 }
 
-void GlobalSequenceAlignerManager::save_alignments()
+void LocalSequenceAlignerManager::save_alignments()
 {
     std::vector<int> maximums = get_maximums();
+    std::cout << "There were found " << maximums.size()/2 << " local maximums." << std::endl;
     file.open(sequences_path, std::ios::app);
     auto start = Time::now();
-    for(int i = 0; i < maximums.size(); i+=2)
+    for (int i = 0; i < maximums.size(); i += 2)
     {
-        traceback_alignments(maximums[i], maximums[i+1]);
+        traceback_alignments(maximums[i], maximums[i],
+                            maximums[i + 1], maximums[i + 1],
+                            maximums[i], maximums[i + 1]);
     }
     auto end = Time::now();
     file.close();
@@ -389,33 +401,33 @@ void GlobalSequenceAlignerManager::save_alignments()
 
     file.open(logs_path, std::ios::app);
     file << project_name << ","
-         << sequences_path << ","
-         << M[maximums[0]][maximums[1]] << ","
-         << total_alignments << ","
-         //<< std::fixed << std::setprecision(20)
-         << (float)alignment_duration.count() << ","
-         << (float)reconstruction_duration.count() << ","
-         << total_gaps / total_alignments << ","
-         << total_matchs / total_alignments << ","
-         << total_mismatchs / total_alignments << "\n";
+        << sequences_path << ","
+        << M[maximums[0]][maximums[1]] << ","
+        << total_alignments << ","
+        //<< std::fixed << std::setprecision(20)
+        << (float)alignment_duration.count() << ","
+        << (float)reconstruction_duration.count() << ","
+        << total_gaps / total_alignments << ","
+        << total_matchs / total_alignments << ","
+        << total_mismatchs / total_alignments << "\n";
     file.close();
 }
 
-class GlobalSequenceAligner
+class LocalSequenceAligner
 {
 private:
-    void make_folder(const std::string &folder_name);
+    void make_folder(const std::string& folder_name);
 
 public:
-    GlobalSequenceAligner(const std::string &,
-                          const std::string &,
-                          const std::string &,
-                          const std::string &,
-                          const int = 1,
-                          const int = -1,
-                          const int = -2,
-                          const int = -5
-                        );
+    LocalSequenceAligner(const std::string&,
+        const std::string&,
+        const std::string&,
+        const std::string&,
+        const int = 1,
+        const int = -1,
+        const int = -2,
+        const int = -5
+    );
     void fit(int = 540);
     std::string A, B, directory;
     std::string A_name, B_name;
@@ -423,15 +435,15 @@ public:
     int gap_penalty, first_gap_penalty;
 };
 
-GlobalSequenceAligner::GlobalSequenceAligner(const std::string &_A,
-                                             const std::string &_B,
-                                             const std::string &_A_name,
-                                             const std::string &_B_name,
-                                             const int _match_score,
-                                             const int _mismatch_score,
-                                             const int _gap_penalty,
-                                             const int _first_gap_penalty
-                                             ): 
+LocalSequenceAligner::LocalSequenceAligner(const std::string& _A,
+    const std::string& _B,
+    const std::string& _A_name,
+    const std::string& _B_name,
+    const int _match_score,
+    const int _mismatch_score,
+    const int _gap_penalty,
+    const int _first_gap_penalty
+) :
     A(_A),
     B(_B),
     A_name(_A_name),
@@ -445,13 +457,13 @@ GlobalSequenceAligner::GlobalSequenceAligner(const std::string &_A,
     make_folder(directory);
 }
 
-void GlobalSequenceAligner::make_folder(const std::string &folder_name)
+void LocalSequenceAligner::make_folder(const std::string& folder_name)
 {
 #ifdef __LINUX__
     if (mkdir(folderName.c_str(), 0777) == 0)
     {
         std::cout << "\"" << folder_name << "\""
-                  << " folder created successfully." << std::endl;
+            << " folder created successfully." << std::endl;
     }
     else
     {
@@ -463,13 +475,13 @@ void GlobalSequenceAligner::make_folder(const std::string &folder_name)
     {
         std::cerr << "Error converting string to wide string." << std::endl;
     }
-    wchar_t *wideFolderName = new wchar_t[bufferSize];
+    wchar_t* wideFolderName = new wchar_t[bufferSize];
     MultiByteToWideChar(CP_UTF8, 0, folder_name.c_str(), -1, wideFolderName, bufferSize);
 
     if (CreateDirectoryW(wideFolderName, nullptr) || ERROR_ALREADY_EXISTS == GetLastError())
     {
         std::cout << "\"" << folder_name << "\""
-                  << " folder created successfully." << std::endl;
+            << " folder created successfully." << std::endl;
     }
     else
     {
@@ -480,7 +492,7 @@ void GlobalSequenceAligner::make_folder(const std::string &folder_name)
 #endif
 }
 
-void GlobalSequenceAligner::fit(int chunk_size)
+void LocalSequenceAligner::fit(int chunk_size)
 {
     /*
     if ((A.size() / chunk_size) != (B.size() / chunk_size))
@@ -491,7 +503,7 @@ void GlobalSequenceAligner::fit(int chunk_size)
     }
     */
     int chunks = A.size() / chunk_size;
-    
+
     std::string logs_path = directory + "/logs.csv";
     std::ofstream logs(logs_path);
     logs << "chunk,file_name,score,total_alignments,alignment_time,reconstruction_time,mean_gaps,mean_match,mean_mismatch\n";
@@ -499,10 +511,10 @@ void GlobalSequenceAligner::fit(int chunk_size)
 
     for (int i = 0; i < chunks; i++)
     {
-        std::string project_name = to_string(i*chunk_size) +
-                                   "_" +
-                                   to_string((i * chunk_size) + chunk_size);
-        GlobalSequenceAlignerManager temporalAligner(
+        std::string project_name = to_string(i * chunk_size) +
+            "_" +
+            to_string((i * chunk_size) + chunk_size);
+        LocalSequenceAlignerManager temporalAligner(
             A.substr(i * chunk_size, chunk_size),
             B.substr(i * chunk_size, chunk_size),
             directory + "/",
@@ -525,14 +537,14 @@ void GlobalSequenceAligner::fit(int chunk_size)
     std::string A_remainder = A.substr(chunks * chunk_size);
     std::string B_remainder = B.substr(chunks * chunk_size);
     std::string last_project_name = to_string(chunks * chunk_size) + "_END";
-    GlobalSequenceAlignerManager ResidualAligner(A_remainder,
-                                                 B_remainder,
-                                                 directory + "/",
-                                                 last_project_name,
-                                                 match_score,
-                                                 mismatch_score,
-                                                 gap_penalty,
-                                                 first_gap_penalty);
+    LocalSequenceAlignerManager ResidualAligner(A_remainder,
+        B_remainder,
+        directory + "/",
+        last_project_name,
+        match_score,
+        mismatch_score,
+        gap_penalty,
+        first_gap_penalty);
     ResidualAligner.align();
     ResidualAligner.save_alignments();
     ResidualAligner.save_scoring_matrix();
@@ -576,7 +588,7 @@ std::vector<SequenceType> process_txt_sequences()
     return sequences;
 }
 
-void align_sequences(const std::vector<SequenceType> &sequences)
+void align_sequences(const std::vector<SequenceType>& sequences)
 {
     for (int i = 0; i < sequences.size(); i++)
     {
@@ -584,20 +596,20 @@ void align_sequences(const std::vector<SequenceType> &sequences)
         {
             if (i == j)
                 continue;
-            GlobalSequenceAligner Aligner(sequences[i].second,
-                                          sequences[j].second,
-                                          sequences[i].first,
-                                          sequences[j].first,
-                                          1, -1,-2, -5); // Current Alignment Configuration
+            LocalSequenceAligner Aligner(sequences[i].second,
+                sequences[j].second,
+                sequences[i].first,
+                sequences[j].first,
+                1, -1, -2, -2); // Current Alignment Configuration
             Aligner.fit(1080);
         }
     }
 }
 
-void export_sequences(const std::vector<SequenceType> &sequences)
+void export_sequences(const std::vector<SequenceType>& sequences)
 {
     std::ofstream file("processed_sequences.txt");
-    for(int i = 0; i < sequences.size(); i++)
+    for (int i = 0; i < sequences.size(); i++)
     {
         file << sequences[i].first << "\n";
         file << sequences[i].second << "\n";
@@ -606,6 +618,6 @@ void export_sequences(const std::vector<SequenceType> &sequences)
 
 int main()
 {
-    GlobalSequenceAligner Aligner("GGTTGACTA","TGTTACGG", "random_string_A", "random_string_B", 3,-3,-2,-2);
-    Aligner.fit();
+    std::vector<SequenceType> sequences = process_txt_sequences();
+    align_sequences(sequences);
 }
